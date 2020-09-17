@@ -17,10 +17,7 @@
 package com.example.android.trackmysleepquality.sleeptracker
 
 import android.app.Application
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
+import androidx.lifecycle.*
 import com.example.android.trackmysleepquality.database.SleepDatabaseDao
 import com.example.android.trackmysleepquality.database.SleepNight
 import com.example.android.trackmysleepquality.formatNights
@@ -42,7 +39,11 @@ class SleepTrackerViewModel(
 
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
 
-    private var tonight = MutableLiveData<SleepNight?>()
+    private var _tonight = MutableLiveData<SleepNight?>()
+    val tonight : LiveData<SleepNight?>
+    get() {
+        return _tonight
+    }
 
     private val nights = database.getAllNights()
 
@@ -50,13 +51,21 @@ class SleepTrackerViewModel(
         formatNights(nights, application.resources)
     }
 
+    private var _shouldNavigate = MutableLiveData<Boolean>()
+
+    val shouldNavigate : LiveData<Boolean>
+        get() {
+            return _shouldNavigate
+        }
+
     init {
+        _shouldNavigate.value = false
         initializeTonight()
     }
 
     private fun initializeTonight() {
         uiScope.launch {
-            tonight.value = getTonightFromDatabase()
+            _tonight.value = getTonightFromDatabase()
         }
     }
 
@@ -79,7 +88,7 @@ class SleepTrackerViewModel(
             val newNight = SleepNight()
             insert(newNight)
 
-            tonight.value = getTonightFromDatabase()
+            _tonight.value = getTonightFromDatabase()
         }
     }
 
@@ -91,9 +100,10 @@ class SleepTrackerViewModel(
 
     fun onStopTracking() {
         uiScope.launch {
-            val oldNight = tonight.value ?: return@launch
+            val oldNight = _tonight.value ?: return@launch
             oldNight.endTimeMilli = System.currentTimeMillis()
             update(oldNight)
+            _shouldNavigate.value = true
         }
     }
 
@@ -106,7 +116,7 @@ class SleepTrackerViewModel(
     fun onClear() {
         uiScope.launch {
             clear()
-           tonight.value = null
+           _tonight.value = null
         }
     }
 
@@ -115,6 +125,10 @@ class SleepTrackerViewModel(
         withContext(Dispatchers.IO) {
             database.clear()
         }
+    }
+
+    fun navigationFinished() {
+        _shouldNavigate.value = false
     }
 
 }

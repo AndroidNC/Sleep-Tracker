@@ -22,7 +22,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.NavigationUI
 import com.example.android.trackmysleepquality.R
 import com.example.android.trackmysleepquality.database.SleepDatabase
 import com.example.android.trackmysleepquality.databinding.FragmentSleepTrackerBinding
@@ -39,11 +42,12 @@ class SleepTrackerFragment : Fragment() {
      *
      * This function uses DataBindingUtil to inflate R.layout.fragment_sleep_quality.
      */
+    private lateinit var binding: FragmentSleepTrackerBinding
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
         // Get a reference to the binding object and inflate the fragment views.
-        val binding: FragmentSleepTrackerBinding = DataBindingUtil.inflate(
+        binding = DataBindingUtil.inflate(
                 inflater, R.layout.fragment_sleep_tracker, container, false)
 
 
@@ -51,13 +55,25 @@ class SleepTrackerFragment : Fragment() {
         val dataSource = SleepDatabase.getInstance(application).sleepDatabaseDao
 
         val viewModelFactory = SleepTrackerViewModelFactory(dataSource, application)
-
         val sleepTrackerViewModel = ViewModelProvider(this, viewModelFactory).get(SleepTrackerViewModel::class.java)
 
         binding.sleepTrackerViewModel = sleepTrackerViewModel
 
         binding.lifecycleOwner = this
 
+        sleepTrackerViewModel.shouldNavigate.observe(viewLifecycleOwner, Observer {shouldNavigate ->
+            if(shouldNavigate) {
+                NavigateToSleepQualityFragment()
+                binding.sleepTrackerViewModel!!.navigationFinished()
+            }
+        })
+
         return binding.root
+    }
+
+    private fun NavigateToSleepQualityFragment() {
+        val nightId = binding.sleepTrackerViewModel!!.tonight!!.value!!.nightId
+        val action =  SleepTrackerFragmentDirections.actionSleepTrackerFragmentToSleepQualityFragment(nightId)
+        this.findNavController().navigate(action)
     }
 }
