@@ -16,52 +16,49 @@
 
 package com.example.android.trackmysleepquality.sleepquality
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.example.android.trackmysleepquality.database.SleepDatabase
 import com.example.android.trackmysleepquality.database.SleepDatabaseDao
-import com.example.android.trackmysleepquality.database.SleepNight
 import kotlinx.coroutines.*
 
-class SleepQualityViewModel(val database: SleepDatabaseDao, application: Application) : AndroidViewModel(application) {
+class SleepQualityViewModel(val nightId: Long, val database: SleepDatabaseDao) : ViewModel() {
 
     var viewModelJob = Job()
     var uiScope = CoroutineScope(Dispatchers.Main + viewModelJob )
-
-    var _shoudNavigate = MutableLiveData<Boolean>()
-    val shouldNavigate : LiveData<Boolean>
-    get() {
-        return _shoudNavigate
-    }
 
     override fun onCleared() {
         super.onCleared()
         viewModelJob.cancel()
     }
 
+    var _navigateToSleepTracker = MutableLiveData<Boolean>()
+    val navigateToSleepTracker : LiveData<Boolean>
+    get() {
+        return _navigateToSleepTracker
+    }
+
     init {
-        _shoudNavigate.value = false
+        _navigateToSleepTracker.value = false
     }
 
 
     fun onSleepQualitySelection(quality: Int) {
         uiScope.launch {
             updateSleep(quality)
-            _shoudNavigate.value = true
+            _navigateToSleepTracker.value = true
         }
     }
 
     private suspend fun updateSleep(quality: Int) {
         withContext(Dispatchers.IO) {
-            var tonight = database.getTonight()
-            tonight!!.sleepQuality = quality
-            database.update(tonight!!)
+            var night = database.get(nightId)
+            night?.sleepQuality = quality
+            database.update(night!!)
         }
     }
 
-    fun NavigationComplted() {
-        _shoudNavigate.value = false
+    fun doneNavigating() {
+        _navigateToSleepTracker.value = false
     }
 }
