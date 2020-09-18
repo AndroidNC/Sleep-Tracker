@@ -52,6 +52,18 @@ class SleepTrackerViewModel(
         formatNights(nights, application.resources)
     }
 
+    val startButtonVisible = Transformations.map(tonight, {
+        it == null
+    })
+
+    val stopButtonVisible = Transformations.map(tonight, {
+        it != null
+    })
+
+    val clearButtonVisible = Transformations.map(nights, {
+        it?.isNotEmpty()
+    })
+
     init {
         _navigateToSleepQuality.value = null
         initializeTonight()
@@ -103,6 +115,7 @@ class SleepTrackerViewModel(
 
     fun doneNavigating() {
         _navigateToSleepQuality.value = null
+        tonight.value = null
     }
 
     private suspend fun update(newNight: SleepNight) {
